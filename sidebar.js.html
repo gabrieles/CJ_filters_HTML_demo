@@ -1,0 +1,150 @@
+<script>
+
+function refreshPage(){
+
+  $('#dummyjobs .job').remove();
+  $('#dummyjobs .message').remove();
+  lipsum = new LoremIpsum();
+  
+  var titles = ["Project manager", "Coordinator", "Social Worker", "Nurse", "Head of Operations", "Director of Finance", "CEO", "Executive Assistant", "Trustee", "Policy Researcher", "Campaign Manager"];
+  var orgs = ["Oxfam", "CAFOD", "NCVO", "Save the Children", "Amnesty International", "The Cotton Tree Trust", "GL11 Community Hub", "MediCinema", "Cranstoun"];
+  var locs = ["London", "Manchester", "Glasgow", "Liverpool", "Brighton", "Bristol", "Cardiff", "Norwich", "Kingston", "Working from home", "Belfast"];
+  var sals = ["£7,500", "£23,000", "£28,320", "£31,540", "£35,675", "£41,200", "£45,000", "£49,853", "£56,766", "£61,987", "£71,654", "£85,823", "£156,218"];
+  var cons = ["Permanent", "Part-time", "Temporary", "Contract"];
+
+  var html = '<p class="message"> Found ' + Math.floor(Math.random()*20000) + ' jobs.</p>';
+  for (var j=0; j < 6; j++){
+    var title = titles[Math.floor(Math.random()*titles.length)];
+    var org = orgs[Math.floor(Math.random()*orgs.length)];
+    var loc = locs[Math.floor(Math.random()*locs.length)];
+    var sal = sals[Math.floor(Math.random()*sals.length)];
+    var con = cons[Math.floor(Math.random()*cons.length)];
+    var desc = lipsum.generate(20);
+    html += '<div class="job">' +
+              '<div class="job-title">' + title + '</div>' +
+              '<div class="job-org"> Posted by <b>' + org + '</b></div>' +
+              '<div class="meta">' + 
+                '<div class="loc"><i class="fa fa-map-marker-alt"></i>' + loc + '</div>' +
+                '<div class="sal"><i class="fa fa-pound-sign"></i>' + sal + '</div>' +
+                '<div class="con"><i class="fa fa-briefcase"></i>' + con + '</div>' +
+              '</div>' +
+              '<div class="desc">' + desc + '</div>' +
+            '</div>';  
+  }
+  $('#dummyjobs').append(html);
+}
+
+
+function updateCaretColor(){
+
+  $('label').each( function(){
+  
+    if ($(this).next('ul').find('.selected').length) { 
+      $(this).addClass('hasSelected');
+    } else {
+      $(this).removeClass('hasSelected'); 
+    }
+    
+  });
+}
+
+
+
+jQuery(document).ready(function(){
+	var accordionsMenu = $('.cd-accordion-menu');
+
+	if( accordionsMenu.length > 0 ) {
+		
+		accordionsMenu.each(function(){
+			var accordion = $(this);
+			
+			accordion.on('change', 'input[type="checkbox"]', function(){
+				var checkbox = $(this);
+				( checkbox.prop('checked') ) ? checkbox.siblings('ul').attr('style', 'display:none;').slideDown(300) : checkbox.siblings('ul').attr('style', 'display:block;').slideUp(300);
+			});
+		});
+	}
+    
+    //initialize chosen
+    $('.chosen-select').chosen({
+      no_results_text: "Oops, nothing found!",
+      width: "90%",
+      inherit_select_classes: true,
+    });
+    
+    //add some fake jobs when you first load the page
+    refreshPage();
+    
+    //actions after click on one of the rounded ticks
+    $( ".selectable" ).click(function() {
+    
+       //update the class of the clicked option
+      $(this).toggleClass('selected');
+      $(this).siblings('.show').removeClass('show');
+      
+    });
+      
+    //actions after click on one of the rounded ticks
+    $( ".far.fa-check-circle" ).click(function() {
+      
+      
+      //update the class of the clicked option
+      $(this).toggleClass('selected');
+      
+
+      //update chosen
+      var options = [];
+      for (var i=0; i < $('i.selected').length; i++){
+        var dummy =  $('i.selected')[i];
+        options.push( $(dummy).parent().text() );
+      }
+      $('.chosen-select').val(options);
+      $(".chosen-select").trigger("chosen:updated");     
+        
+      
+      updateCaretColor();
+      
+      refreshPage();
+      
+    });
+    
+    
+    //on change of chosen
+    $('.chosen-select').on('change', function(e) {
+    
+      //get the list of all selected items in chosen
+      var optionsString = '';
+      var optionsArray = $('.chosen-select option:selected');
+      for (var i=0; i < optionsArray.length; i++){
+        var dummy = optionsArray[i];
+        optionsString = optionsString + "*" + $(dummy).text() + "*";
+      }
+      
+      //get the list of all selected items via the UI
+      var allTick = $('.far.fa-check-circle');
+      for (var j=0; j < allTick.length; j++){
+        var dummy = allTick[j];
+        var dummyText = "*" + $(dummy).parent().text() + "*";        
+        if ( $(dummy).hasClass('selected') ) {
+          if ( optionsString.indexOf(dummyText) == -1 ) {
+            //it is ticked but no longer in chosen
+            $(dummy).removeClass('selected');    
+          }
+        } else {
+          if ( optionsString.indexOf(dummyText) > -1 ) {
+            //it is not ticked but now it is in chosen
+            $(dummy).addClass('selected'); 
+          }
+        }
+      }
+      
+      updateCaretColor();
+      
+      refreshPage();
+    });
+    
+    
+});
+</script>
+
+

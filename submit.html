@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+
+   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jstree/3.0.9/themes/default/style.min.css" />
+   <script src="//cdnjs.cloudflare.com/ajax/libs/jstree/3.0.9/jstree.min.js"></script>
+   
+   <?!= getContent('js'); ?>
+
+    <?!= getContent('css'); ?>
+    
+  </head>
+  <body onclick="if( isFormFilled() ) { hide('inactiveSubmit'); show('activeSubmit'); } else {show('inactiveSubmit'); hide('activeSubmit');}" class="grey-pattern">
+    <div class="page-wrapper form-wrapper">
+      
+      <h1>Submit a new task</h1>
+      
+      
+      
+      <div id="f1-description" class="form-item">
+        <h2>Task description</h2>
+        <textarea id="taskText" name="taskText" value="" placeholder="Enter the text that will be displayed to the tester"></textarea>
+      </div>
+      
+      
+      
+      <div id="f1-expected" class="form-item">
+        <h2>Expected choice from the menu</h2>
+       
+        <?!= printOptions(); ?>
+       
+      </div>
+    
+    
+    
+      <div id="f1-who" class="form-item">
+        <h2> Who would normally complete this task?</h2> 
+        
+        <?!= printAudience(); ?>
+      
+      </div>
+    
+    
+    
+      <div id="f1-notes" class="form-item">
+        <textarea id="taskNotes" name="taskNotes" value="" placeholder="Any additional note?"></textarea>
+      </div>
+    
+    
+    
+      <div class="button-wrapper">
+        <button class="control visible inactive" id="inactiveSubmit" title="You have to fill all the required field to submit a new task">Submit new task</button>
+        <button class="control red hidden" id="activeSubmit" onclick="var outV = outTask(); google.script.run.submitTask(outV);"><a href="<?!= scriptURL ?>?action=submit">Submit this task</a></button>
+      </div> 
+      
+    </div>
+  </body>
+</html>
+
+
+
+

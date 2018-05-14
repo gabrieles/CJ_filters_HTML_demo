@@ -1,0 +1,567 @@
+<style>
+
+:root {
+    /* blue */ 
+    --col1: #2780c3; 
+    --col1h: #4299db;
+    
+    /* yellow */
+    --col2: #f9c600; 
+    --col2h: #ffdb4c; 
+    
+    /* pink */
+    --col3: #ea155b; 
+    --col3h: #ef2567;
+    
+    /* light blue for borders */
+    --col4: #d1dde6; 
+    
+    /* dark blue */
+    --col5: #002a6f; 
+    
+    /* grey1 */
+    --col6: #404041; 
+}
+
+/* http://meyerweb.com/eric/tools/css/reset/ 
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section, main {
+	display: block;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+/* -------------------------------- 
+Typography
+-------------------------------- */
+*, *::after, 
+*::before {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+}
+
+body {
+    color: var(--col5);
+    font-family: 'Open Sans', sans-serif;
+    line-height: 1.4em;
+}
+
+b, strong {
+    font-weight: 700;
+}
+
+a {
+  text-decoration: none;
+  color: var(--col1);
+}
+a:hover {
+  color: var(--col1h);
+}
+
+h1 {
+  font-size: 2.4rem;
+  font-weight: bold;
+}
+h2 {
+  font-size: 1.6rem;
+  font-weight: bold;
+}
+h3 {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+h4 {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+h5 {
+  font-size: 1rem;
+  font-weight: bold;
+}
+h5 {
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+
+/* -------------------------------- 
+Page layout - no jobs
+-------------------------------- */
+
+body {
+    background-color: #fff;
+    transition: all 0.3s ease 0s;
+    padding: 1em;
+}
+
+.page-title{
+    text-align: center;
+    width: 90%;
+    margin: 5px auto 0;
+    color: #666; 
+    display: none;
+}
+
+
+input {
+  font-size: 1rem;
+}
+
+.filters-wrapper {
+    width: 90%;
+    max-width: 334px;
+    margin: 0 auto;
+    display: block;
+}
+
+ul.main-ul {
+    margin: 0;
+    display: block;
+    border-bottom: 1px solid var(--col4);
+}
+
+ul.main-ul li {
+    background-color: #fff;
+}
+
+
+p {
+    margin-bottom: 0.5em;
+}
+
+ol {
+    list-style: disc;
+    list-style-position: outside;
+    padding-left: 2em;
+    margin: 0.75em 0;
+}
+
+
+/* -------------------------------- 
+Page layout - show jobs
+-------------------------------- */
+.show-jobs .container {
+    width: 1200px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.show-jobs .filters-wrapper {
+    display: inline-block;
+    float: left;
+}
+
+div#charityJobsContainer {
+    width: 765px;
+    padding-left: 20px;
+    display: inline-block;
+    float: right;
+}
+.show-jobs .container:after,
+#jobPanel.showPanel .meta:after{
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.job {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    width: 100%;
+    margin: 0 0 1em 0;
+    padding: 1em;
+}
+.job .job-title {
+    font-size: 1.6em;
+    margin: 0.2em 0 0.5em 0;
+    color: var(--col1);
+}
+.job .job-org{
+    color: var(--col6);
+}
+.job span.org {
+    color: var(--col1);
+}
+.job .job-title:hover,
+.job span.org:hover {
+    cursor: pointer;
+}
+.job .meta {
+    margin-bottom: 1em;
+    margin-top: 0.5em;
+}
+.job .meta div {
+    float: left;
+    display: inline-block;
+    margin-right: 2em;
+}
+.job i {
+    margin-right: 0.4em;
+    font-size: 0.9em;
+    color: var(--col5);
+    bottom: 0.05em;
+    position: relative;
+}
+
+.job .desc {
+    clear: both;
+    padding-top: 1em;
+    color: var(--col6);
+    font-size: 0.9rem;
+}
+
+
+/* -------------------------------- 
+Filters menu
+-------------------------------- */
+
+.filters {
+    width: 100%;
+    margin: 0;
+}
+
+.has-children {
+    position: relative;
+    padding: 0;
+    list-style: none; 
+}
+
+.has-children,
+.no-children {
+    border-top: 1px solid var(--col4);
+    border-right: 1px solid var(--col4);
+    border-left: 1px solid var(--col4);
+}
+
+.has-children .has-children,
+.has-children .no-children {
+    border-right-style: none;
+    border-left-style: none;
+}
+
+a.refine.btn {
+    display: none;
+    background-color: var(--col1);
+    width: fit-content;
+    color: #fff;
+    font-size: 0.7em;
+    padding: 0.2em;
+    position: absolute;
+    right: 0.5em;
+    top: 0.9em;
+}
+a.refine.btn:hover{
+    background-color: var(--col1h);
+    color: #fff;
+}
+
+.selected + a.refine.btn {
+    display: block;
+}
+
+/* Arrow with animation */
+
+.has-arrow {
+    padding: 0.7em 0 0.7em 1.5em;
+    position: relative;
+}
+
+.has-arrow::before,
+.has-arrow.collapsed::before {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    position: absolute;
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: 1em;
+}
+
+.has-arrow.collapsed::before {
+    /* arrow icon */
+    content: '\f107';
+    top: 1.2em;
+    left: 0;
+    -webkit-transform: translateY(-50%) rotate(-90deg);
+    -moz-transform: translateY(-50%) rotate(-90deg);
+    -ms-transform: translateY(-50%) rotate(-90deg);
+    -o-transform: translateY(-50%) rotate(-90deg);
+    transform: translateY(-50%) rotate(-90deg);
+}
+
+.has-arrow::before{
+    /* rotate arrow */
+    content: '\f107';
+    top: 1em;
+    left: 0;
+    -webkit-transform: translateY(-35%) translateX(50%);
+    -moz-transform: translateY(-35%) translateX(50%);
+    -ms-transform: translateY(-35%) translateX(50%);
+    -o-transform: translateY(-35%) translateX(50%);
+    transform: translateY(-35%) translateX(50%);
+    transition: 0.3s;
+}
+
+
+/* checkbox with hover and check */
+
+a.has-icon {
+    margin-left: 1.5em;
+    position: relative;
+    width: 100%;
+    display: block;
+}
+
+.level-2 a.has-icon {
+    margin-left: 3em;
+}
+
+.level-2 .level-3 a.has-icon {
+    margin-left: 4.5em;
+}
+
+a.has-icon i:first-of-type {
+    margin-right: 0.5em;
+    position: relative;
+}
+
+a.has-icon:hover i:first-of-type {
+    color: var(--col1h);
+    /* offset-x | offset-y | blur-radius | spread-radius | color */
+    text-shadow: 0px 0px 1px var(--col1h);
+}
+
+.selected.has-icon i:first-of-type {
+    color: var(--col1);
+}
+
+.overlap {
+    display: none;
+}
+    
+.selected.has-icon i.overlap {
+    position: relative;
+    margin-left: -1.6em;
+    color: var(--col1);
+    display: inline-block;
+    font-size: 0.8em;
+    margin-right: 0.6em;
+    bottom: 0.1em;
+}
+
+.filters-wrapper a.selectable {
+    padding: 0.7em 0;
+    display: block;
+}
+
+
+/* -------------------------------- 
+Additional
+-------------------------------- */
+
+.btn-center {
+    margin: 2em auto;
+    display: block;
+    width: fit-content;
+}
+
+
+ul.main-ul li.filters-header {
+    background-image: linear-gradient(106deg,var(--col1),var(--col5));
+    color: #fff;
+    padding: 1em 0.5em;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    position: relative;
+}
+
+ul.main-ul li.filters-header i {
+    font-size: 1.2rem;
+    margin-right: 0.3em;
+}
+
+.filters-header .filters-counter {
+    display: none;
+}
+
+.filters-header span.show-counter {
+    position: absolute;
+    top: 0.6em;
+    right: 0.6em;
+    background-color: var(--col3);
+    border: 0.5em solid var(--col3);
+    border-radius: 1em;
+    width: 2.2em;
+    height: 2.2em;
+    line-height: 1.2em;
+    display: inline-block;
+    text-align: center;
+}
+
+
+.filters-wrapper.shrunk {
+    width: 3.5rem;
+	max-width: 3.5rem;
+    transition: 0.3s;
+    position: fixed;
+}
+
+.shrunk + div#charityJobsContainer {
+    width: 500px;
+    float: left;
+    transition: 0.3s;
+    margin-left: 3.5em;
+}
+
+#jobPanel {
+    display: none;
+    float: left;
+}
+
+#jobPanel.showPanel {
+    width: 530px;
+    display: inline-block;
+    margin-left: 1em;
+    transition: 0.5s;  
+    position: fixed;
+    overflow: scroll;
+    height: 100vh;
+}
+
+
+#jobPanel.showPanel .job {
+    background-color: #fff;
+    border-color: var(--col1);
+}
+
+.job.with-panel:after {
+    content: '';
+    height: 1px;
+    width: 2em;
+    display: block;
+    background-color: var(--col1);
+    position: absolute;
+    top: 50%;
+    right: -2em;
+    border: none;
+}
+.job.with-panel {
+    border-color: var(--col1);
+    position: relative;
+}
+
+#jobPanel.showPanel .meta {
+  border-bottom: 1px solid var(--col4);
+  padding-bottom: 1em;
+}
+.shrunk ul.main-ul {
+    border-bottom-style: none;
+}
+
+.shrunk ul.main-ul li:not(.filters-header),
+.shrunk .btn {
+    display: none;
+    transition: 0.3s;
+}
+
+.shrunk ul.main-ul li.filters-header {
+    width: 3.5rem;
+    text-align: center;
+    height: 6.5rem;
+    border-radius: 5px;
+    transition: 0.3s;
+}
+
+.shrunk ul.main-ul li.filters-header h3 {
+    font-size: 0.5em;
+}
+
+.shrunk ul.main-ul li.filters-header h3 i {
+    display: block;
+    font-size: 1.2rem;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.shrunk ul.main-ul li.filters-header span.show-counter {
+   top: 3.6em;
+}
+
+
+
+
+.footer {
+    background-color: var(--col5);
+    padding: 2em 0;
+    color: #fff;
+}
+
+.footer .additional-text {
+    width: 90%;
+    max-width: 800px;
+    margin: 0 auto;
+    font-size: 0.9rem;
+}
+
+.footer .important {
+    color: var(--col2);
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+
+@media only screen and (min-width: 600px) {
+ 
+}
+
+
+
+</style>
+
+
+
+

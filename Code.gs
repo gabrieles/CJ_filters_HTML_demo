@@ -1,7 +1,18 @@
 //set the global vars
-var sheetID = "1FLrj1S5pjnSM5btjKHiuC7WzMRwR4t03ZhddbG9mHks"; //needed as you cannot use getActiveSheet() while the sheet is not in use (as in a standalone application like this one)
-var settingsName = "Settings"; //the name of the sheet where all the settings are stored - handy to avoid editing code all the time
-var scriptURL = "https://script.google.com/macros/s/AKfycbx7gdszBquToEL_Iw6RRQYaa2-X9Qrs1y8FdrnajoFu3HnfmUKq/exec";  //the URL of this web app
+var sheetID = "1qPR7oEYMi-Rzfr-D8nTqUDH5kWdX43PbP9tmeIrDI3s"; //needed as you cannot use getActiveSheet() while the sheet is not in use (as in a standalone application like this one)
+var scriptURL = "https://script.google.com/macros/s/AKfycbytiMYA6sUnb5dRE3yVzXUJApEDzk5f9Sm_Ihx1pXI0NW4pfLk/exec";  //the URL of this web app
+
+
+/* 
+To run the script that interact with Google drive, you need to enable the Google Drive API: 
+You can do it by clikcing on "Tools > Script Editor" and then on "Resources > Advanced Google Services"
+
+Important: the REST calls are restricted by the Google Apps Script quotas. The two you are most likely to hit into are: 
+1) The maximum runtime for a script is 6 minutes. Individual scripts have a limit of 30 seconds. 
+2) The URLfetch (the HTTP/HTTPS service used to make the API calls) has a 20MB maximum payload size per call.
+   For full details, see https://developers.google.com/apps-script/guides/services/quotas   
+   
+*/
 
 
 // ******************************************************************************************************
@@ -11,38 +22,17 @@ function doGet(e) {
   
   //you can also pass a parameter via the URL as ?add=XXX 
 
-  var template = HtmlService.createTemplateFromFile('filters');  
+  var template = HtmlService.createTemplateFromFile('Dashboard');  
 
   var htmlOutput = template.evaluate()
                    .setSandboxMode(HtmlService.SandboxMode.IFRAME)
-                   .setTitle('CJ Filters')
+                   .setTitle('Dashboard WFDF Sport Dev')
                    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-                   .setFaviconUrl('https://www.charityjob.co.uk/Assets/img/favicon.ico');;
+                   .setFaviconUrl('http://threeflamesproductions.com/wp-content/uploads/2017/01/Favicon_ThreeFlames_FireIcon_Color.png');
 
   return htmlOutput;
 };
 
-
-// ******************************************************************************************************
-// Function to automatically run functions when teh sheet is opened
-// ******************************************************************************************************
-function onOpen(e) {
-  updateSheets();
-}
-
-
-// ******************************************************************************************************
-// Function to update list of sheets every time the worksheets is opened
-// ******************************************************************************************************
-function updateSheets() {
-  var ss = SpreadsheetApp.openById(sheetID);
-  var sheets = ss.getSheets();
-  var sSettings = ss.getSheetByName(settingsName);
-  var range = sSettings.getRange(2,1,sheets.length,1)
-  for(var i=0; i<sheets.length; i++){  
-    range.getCell(i+1, 1).setValue(sheets[i].getName());
-  }  
-}
 
 
 // ******************************************************************************************************
@@ -55,772 +45,280 @@ function getContent(filename) {
 
 
 // ******************************************************************************************************
-// Function to print out the content of the sheets with the menu items
+// Function to return the full HTML of a page by stitching together different page components
 // ******************************************************************************************************
-function printFilters() {
-  
-  var sheetName = '';
-  var codeM = ''; //code for the menu
-  var sheetAction = '';
-  var sheetOut = [];
-  
-  //get settings
-  
-  var ss = SpreadsheetApp.openById(sheetID);
-  var sSettings = ss.getSheetByName(settingsName);
-  var sheets = ss.getSheets();
-  
-  var showJobs = sSettings.getRange(3, 7, 1,1).getValue();
-  
-  //loop over all the sheets, and add their content to the respective menus as needed
-  for(var h=0; h<sheets.length; h++){  
-    
-    var sheet = ss.getSheets()[h]; // look at each sheet in workbook 
-    var sheetName = sheet.getName(); //get the sheet name
-    
-    //grab the action from the "settings" sheet, and add the code to the respective menu
-    sheetAction = sSettings.getRange(h+2, 2, 1,1).getValue();
-    
-    Logger.log("Executing " + sheetAction + " for " + sheetName);
+function createHTML(pagename, pageTitle, bodyClass) {
+ 
+  var html = '<!DOCTYPE html>' +
+             '<html>' +
+               '<head>' +
+                 '<base target="_top">' + 
+                  getContent('head') +                   
+                  '<title>' + pageTitle + '</title>' +
+               '</head>' +
+               '<body id="page-top" class="' + bodyClass + '">' +
+               getContent('navigation') +  
+               getContent(pagename) +
+               getContent('footer') + 
+               '</body>' +
+             '</html>'  
+  return html;               
+}
 
-    switch (sheetAction) {
-        
-      case "Dropdown":
-        codeM += createFiltersFromSheet(sheet,h);
-      break;
-    
-      default:
-        //do nothing
-    }
-    
-  }
-  
-  if (showJobs == "Yes") {
-    
-    var codeJ = '<div id="charityJobsContainer"><div id="dummyjobs"></div></div>' + 
-                '<div id="jobPanel"></div>' +
-                '<script>' +
-                   'jQuery(document).ready(function(){ ' + 
-                     '$("body").addClass("show-jobs"); ' + 
-                     'refreshPage();' +
-                   '});'+ 
-                '</script>';
+
+
+// ******************************************************************************************************
+// Function to shortcut writing a call for a user property
+// ******************************************************************************************************
+function printVal(key) {
+
+  if (key == "git_token" || key == "git_user") {
+     var dummy = PropertiesService.getUserProperties().getProperty(key);    
   } else {
-    
-    var codeJ = '';
-    
+     var dummy = PropertiesService.getScriptProperties().getProperty(key);    
   }
-  
-  var codeB = '<a class="btn btn-primary btn-center" href="javascript:void(0)">Save search</a>'+
-              '<a class="btn btn-primary btn-center" href="javascript:void(0)" onclick="resetFilters();">Reset</a>'; 
-  
-  var codeMenu = '<div class="filters-wrapper">' + 
-                   '<ul class="main-ul">' + 
-                      '<li class="filters-header"><h3><i class="fa fa-filter"></i>Filters</h3><span id="filtersCounter" class="filters-counter"></span></li>' + 
-                        codeM + 
-                   '</ul>' + 
-                   codeB + 
-                  '</div>' + 
-                  codeJ;
-  
-  return codeMenu; 
-  
+  return dummy;
+  //TODO - add logic for when the property is not defined
 }
 
 
 
 // ******************************************************************************************************
-// Utility function to return the content of a sheet as menu
+// Function to create menus when you open the sheet
 // ******************************************************************************************************
-
-function createFiltersFromSheet(sh, index) {
-  var outC = '<li class="has-children">';
-  var parentID = '';
-  var uniqueID = '';
-  var thisCellVal = '';
-  var rightCellVal = '';
-  var belowCellVal = '';
-  var belowLeftCellVal = '';
-  var refineBtn = '';
-  var collapseClass = '';
-  var defaultSelected = '';
-  var cellFontWeight = '';
-  var hasChildren = false;
-  var shName = sh.getName();  
-  var lastRow = sh.getLastRow(); 
-  var lastCol = sh.getLastColumn(); 
-  
-  outC = '<li data-toggle="collapse" data-target="#items-in-' + index + '" class="has-children collapsed has-arrow level-0">' + shName + '</li>' +
-           '<ul id="items-in-' + index + '" class="collapse">';
-  
-  var range = sh.getRange(1, 1, lastRow+1, lastCol+1)
-  
-  //loop over all rows and columns 
-  for ( var i=1; i<=lastRow; i++ ){
-    for ( var j=1; j<=lastCol; j++ ){
-      
-    //uniqueID = sheet    -   row   -  column
-      uniqueID = index + '-' + i + '-' + j;
-      
-      
-      cellFontWeight = range.getCell(i,j).getFontWeight();      
-      if ( cellFontWeight == "bold" ) {
-        defaultSelected = ' selected';
-      } else {
-        defaultSelected = '';
-      }
-      
-      thisCellVal = range.getCell(i,j).getValue();
-     
-      //skip if empty
-      if (thisCellVal) {
-        
-        rightCellVal = range.getCell(i,j+1).getValue();
-        
-        //if the cell that has a value is in the first column, or if it has a value on its right, it is a parent 
-        if( rightCellVal ) {
-          refineBtn = '<a class="refine btn" data-toggle="collapse" data-target="#children-of-' + uniqueID + '">Refine</a>';
-          parentID = uniqueID;
-          outC += '<li id="id-' + uniqueID + '" class="has-children level-' + j + '">' +
-                    '<a class="selectable has-icon' + defaultSelected + '">' + 
-                      '<i class="far fa-square"></i><i class="fa fa-check overlap"></i>' + thisCellVal + 
-                    '</a>' + 
-                    refineBtn + 
-                    '<ul id="children-of-' + uniqueID + '" class="collapse">';
-        } else {
-          outC += '<li id="id-' + uniqueID + '" class="no-children level-' + j + '">' + 
-                    '<a class="selectable has-icon' + defaultSelected + '">' + 
-                      '<i class="far fa-square"></i><i class="fa fa-check overlap"></i>' + thisCellVal + 
-                    '</a>' + 
-                  '</li>';
-        }
-        
-        
-        //check if it is time to close a menu
-        belowCellVal = range.getCell(i+1,j).getValue();
-        if(j>1) { 
-          belowLeftCellVal = range.getCell(i+1,j-1).getValue();
-        } else {
-          belowLeftCellVal = '';
-        }
-        
-        
-        if ( i==lastRow ) {
-          //close the last row only if the cell is not in the first column
-          if(j>1) { 
-            for ( var k = j; k>1; k-- ) {
-              outC += '</ul>';
-            }
-          } 
-          
-        } else {
-        
-          if ( (!belowCellVal) || belowLeftCellVal){
-            if(j>1) { 
-              for ( var k = j; k>1; k-- ) {
-                var cellUnderLeftVal = range.getCell(i+1,k-1).getValue();
-                if(cellUnderLeftVal) {
-                  outC += '</ul>';
-                } 
-              }
-            } 
-          }
-          
-        }
-        
-      }
-    }
-  }
-  
-  outC += "</ul></li>";
-  return outC;
-}
-
-
-// ******************************************************************************************************
-// Function to print out the bottom text
-// ******************************************************************************************************
-function printAdditionalText() {
-    
-  //get settings
-  
-  var ss = SpreadsheetApp.openById(sheetID);
-  var sSettings = ss.getSheetByName(settingsName);
-  
-  var textVal = sSettings.getRange(4, 7, 1,1).getValue();
-  
-  var codeBT = '<div class="additional-text">' + textVal + '</div>'
-  return codeBT;
+function onOpen(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var menuEntries = [{name: "Configure the github repo", functionName: "githubRepoConfigure"},
+                     {name: "Set GitHub authentication", functionName: "setGithubAuthToken"}
+                    ]; 
+  ss.addMenu("GitHub", menuEntries);
 }
 
 
 
-// ******************************************************************************************************
-// Function to print out the content of the sheets with the menu items
-// ******************************************************************************************************
-function printSidebar() {
-  
-  var sheetName = '';
-  var codeM = ''; //code for the menu
-  var codeC = ''; //code for Chosen search/select 
-  var sheetAction = '';
-  var sheetOut = [];
-  
-  //get settings
-  
-  var ss = SpreadsheetApp.openById(sheetID);
-  var sSettings = ss.getSheetByName(settingsName);
-  var sheets = ss.getSheets();
-  
-  var showJobs = sSettings.getRange(3, 7, 1,1).getValue();
 
+// ******************************************************************************************************
+// Function to generate the HTML for a project page
+// ******************************************************************************************************
+function generateProjectHTML(id) {
   
-  //print menus
+  var html = '';
+  var idString = id.toString();
+  var data = sheet2Json('Projects');
+  //filter the data to get the project with thr required id
+  var projectDataArray = data.filter(function (entry) {
+    return entry.id == idString;
+  });
+  //the above returns an array - you want just the first item
+  var projectData = projectDataArray[0];
+  
+  var bodyClass = 'project-page';
 
-  //loop over all the sheets, and add their content to the respective menus as needed
-  for(var h=0; h<sheets.length; h++){  
-    
-    var sheet = ss.getSheets()[h]; // look at each sheet in workbook 
-    var sheetName = sheet.getName(); //get the sheet name
-    
-    //grab the action from the "settings" sheet, and add the code to the respective menu
-    sheetAction = sSettings.getRange(h+2, 2, 1,1).getValue();
-    
-    switch (sheetAction) {
-      case "Dropdown":
-        sheetOut = createSidebarItems(sheet,h);
-        codeM += '<li id="li-' + h + '" class="has-children dropdown"><input type="checkbox" name ="group-' + h + '" id="group-' + h + '"><label for="group-' + h + '">' + sheetName + '</label><ul>';
-        codeM += sheetOut[0];
-        codeM += '</ul></li>';  
-        
-        codeC += sheetOut[1];
-        
-        break;
-      case "Multiselect":
-        
-        break;
-      case "Subcategory":
-        sheetOut = createSubcategoryItems(sheet,h);
-        codeM += '<li id="li-' + h + '" class="has-children subcategory"><input type="checkbox" name ="group-' + h + '" id="group-' + h + '"><label for="group-' + h + '">' + sheetName + '</label><ul>';
-        codeM += sheetOut[0];
-        codeM += '</ul></li>'; 
-        
-        codeC += sheetOut[1];
+  html += '<!DOCTYPE html>' +
+            '<html>' +
+              '<head>' +
+                '<base target="_top">' + 
+                getContent('head') +                   
+                '<title>' + projectData.title + ' - ToGetThere</title>' +
+              '</head>' +
+              '<body id="page-top" class="' + bodyClass + '">' +
+                getContent('navigation');  
                
-        break;  
-      default:
-        //do nothing
-    }  
+	
+  // Header
+  var headerImage_url = projectData.headerImage_url;
+  if(!headerImage_url) { headerImage_url = '/images/header.jpg';}    
+    html += '<header class="masthead" style="background-image: url(' + headerImage_url + ')">' +
+			  '<div class="container">' +
+				'<div class="intro-text">' +
+					'<div class="intro-lead-in">' + projectData['headline'] + '</div>' +
+					'<div class="intro-heading text-uppercase">' + projectData['title'] + '</div>' +
+					'<a class="btn btn-primary btn-xl text-uppercase js-scroll-trigger" href="#donate">Give</a>' +
+				'</div>' +
+			  '</div>' +
+			'</header>';
+
+  // Project description - you have 3 rows
+  html += '<section id="description">' +
+     	    '<div class="container">';
+    
+  if (projectData.top_row) { 
+    html += '<div class="row">' +
+              '<div class="col-lg-12">' +
+                projectData.top_row +
+              '</div>' +
+            '</div>';
+  }
+    
+  if (projectData.middle_row) { 
+    html += '<div class="row">' +
+              '<div class="col-lg-12">' +
+                projectData.middle_row +
+              '</div>' +
+            '</div>';
+  }
+    
+	
+  if (projectData.bottom_row) { 
+    html += '<div class="row">' +
+              '<div class="col-lg-12">' +
+                projectData.bottom_row +
+              '</div>' +
+            '</div>';
+  }
+	
+  html += '</section>';
+
+	
+  
+  // Donate section - up to 3 calls to action
+  var colCount = 0;
+  if(projectData.money_url) { colCount = colCount+1 }
+  if(projectData.equipment_text) { colCount = colCount+1 }
+  if(projectData.service_text) { colCount = colCount+1 }
+	
+  if (colCount> 0) {
+    var colSize = 12/colCount;
+    
+    html += '<section id="donate">' +
+              '<div class="container">' +
+				'<div class="row text-center">';
+				  if(projectData.money_url) {
+					html += '<div class="col-md-' + colSize + '">' +
+							  '<a class="cta cta-ask cta-button" data-toggle="modal" href="' + projectData.money_url +'">' +
+								'<span class="fa-stack fa-4x">' +
+								  '<i class="fa fa-circle fa-stack-2x text-primary"></i>' +
+								  '<i class="fa fa-question fa-stack-1x fa-inverse"></i>' +
+								'</span>' +
+							  '</a>' +
+							  '<h4 class="service-heading">' +
+							    '<a class="cta cta-ask cta-text" data-toggle="modal" href="' + projectData.money_url + '">Donate</a>' +
+							  '</h4>' +
+							  '<p class="text-muted">' + projectData.money_text + '</p>' +
+							'</div>';
+				  }
+						
+				  if(projectData.equipment_text) {
+					if (!projectData.equipment_url) { projectData.equipment_url = '#give-equipment'}
+					  html += '<div class="col-md-' + colSize + '">' +
+					 		    '<a class="cta cta-ask cta-button" data-toggle="modal" href="' + projectData.equipment_url + '">' +
+								  '<span class="fa-stack fa-4x">' +
+									'<i class="fa fa-circle fa-stack-2x text-primary"></i>' +
+									'<i class="fa fa-question fa-stack-1x fa-inverse"></i>' +
+								  '</span>' +
+								'</a>' +
+								'<h4 class="service-heading">' +
+								  '<a class="cta cta-ask cta-text" data-toggle="modal" href="' + projectData.equipment_url + '">Give</a>' +
+								'</h4>' +
+								'<p class="text-muted">' + projectData.equipment_text + '</p>' +
+							  '</div>';
+				  }
+						
+				  if(projectData.service_text) {
+					if (!projectData.service_url) { projectData.service_url = '#give-service'}
+					  html += '<div class="col-md-' + colSize + '">' +
+								'<a class="cta cta-ask cta-button" data-toggle="modal" href="' + projectData.service_url + '">' +
+					   			  '<span class="fa-stack fa-4x">' +
+									'<i class="fa fa-circle fa-stack-2x text-primary"></i>' +
+									'<i class="fa fa-question fa-stack-1x fa-inverse"></i>' +
+								  '</span>' +
+								'</a>' +
+								'<h4 class="service-heading">' +
+								  '<a class="cta cta-ask cta-text" data-toggle="modal" href="' + projectData.service_url + '">Give</a>' +
+								'</h4>' +
+								'<p class="text-muted">' + projectData.service_text + '</p>' +
+							  '</div>';
+				  }
+
+				  html += '</div>' +
+				        '</div>' +
+			          '</section>';
+  }
+	
+  // Team - TODO
+  if(projectData.has_team) {
+    html += '<section class="bg-light" id="team">' +
+			'</section>';
   }
   
-  codeC = '<div class="select-wrapper"><select data-placeholder="Choose a filter here or in the list below" multiple class="chosen-select">' + codeC + '</select></div>';
-  //insert the code in the menu wrapper
-  if(codeM) { codeM = '<ul class="cd-accordion-menu animated">' + codeM + '</ul>'; }
+  // Links - TODO
+  var colCount = 0;
+  if(projectData.facebook_url) { colCount = colCount+1 }
+  if(projectData.twitter_url) { colCount = colCount+1 }
+  if(projectData.site_url) { colCount = colCount+1 }
   
-  
-  //not currently in use
-  var codeB = '<a class="btn" href="' + ss.getUrl() + '" target="_blank">Edit Options</a>'; 
-  
-  if (showJobs == "Yes") {
+  if (colCount> 0) {
+    var colSize = 12/colCount;
     
-    var codeJ = '<div id="charityJobsContainer"><div id="dummyjobs"></div></div>' + 
-                '<div id="jobPanel"></div>' + 
-                '<script>' +
-                   'jQuery(document).ready(function(){ ' + 
-                     '$("body").addClass("show-jobs"); ' + 
-                   '});'+ 
-                '</script>';
-  } else {
+  }  
     
-    var codeJ = '';
-    
-  }
-     
-  // var codeMenu = '<div class="filters-wrapper">' + codeC + codeM +'</div>'  + codeJ ; 
-  var codeMenu = '<div class="filters-wrapper">' + codeM +'</div>'  + codeJ ; 
-  return codeMenu; 
-  
-}
+  html += getContent('footer') + 
+        '</body>' +
+      '</html>';  
+
+  return html;
+
+}	
 
 
 // ******************************************************************************************************
-// Utility function to return the content of a sheet as menu
+// Get the content of a google sheet and convert it into a json - from https://gist.github.com/daichan4649/8877801
 // ******************************************************************************************************
+function convertSheet2JsonText(sheet) {
+  // first line(title)
+  var colStartIndex = 1;
+  var rowNum = 1;
+  var firstRange = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+  var firstRowValues = firstRange.getValues();
+  var titleColumns = firstRowValues[0];
 
-function createSidebarItems(sh, index) {
-  var outC = '';
-  var shName = sh.getName();
-  var outS = '<optgroup label="' + shName + '">';
-  var gIndex = '';
-  var lastRow = sh.getLastRow(); 
-  var lastCol = sh.getLastColumn(); 
-  
-  var isIt = false;
-  
-  var range = sh.getRange(1, 1, lastRow+1, lastCol+1)
-  var addCode = '';
-  
-  //loop over the rows and columns - each one is a level
-  for ( var i=1; i<=lastRow; i++ ){
-    for ( var j=1; j<=lastCol; j++ ){
-      gIndex = index + '-' + i + '-' + j;
-      var thisCellVal = range.getCell(i,j).getValue();
-      
-      //skip if empty
-      if (thisCellVal) {
-        
-        outS += '<option class="item-' + gIndex + ' col-class-' + j + ' " value="' + thisCellVal + '">' + thisCellVal + '</option>';
+  // after the second line(data)
+  var lastRow = sheet.getLastRow();
+  var rowValues = [];
+  for(var rowIndex=2; rowIndex<=lastRow; rowIndex++) {
+    var colStartIndex = 1;
+    var rowNum = 1;
+    var range = sheet.getRange(rowIndex, colStartIndex, rowNum, sheet.getLastColumn());
+    var values = range.getValues();
+    rowValues.push(values[0]);
+  }
 
-        //if it has children, set the class, print an input box and open an <ul>
-        var cellRightVal = range.getCell(i,j+1).getValue();
-        if (cellRightVal) {
-          outC += '<li id="item-' + gIndex + '" class="has-children"><input type="checkbox" name ="sub-group-' + gIndex + '" id="group-' + gIndex + '"><label for="group-' + gIndex + '">' + thisCellVal + '</label><ul>';
-        } else {       
-          outC += '<li id="item-' + gIndex + '" class="no-children"><a class="selectable">' + thisCellVal + '</a></li>';
-        }
-                         
-        //check if it is time to close a menu
-        var cellUnderVal = range.getCell(i+1,j).getValue();
-        var cellUnderLeftVal = '';
-        if(j>1) { 
-          var cellUnderLeftVal = range.getCell(i+1,j-1).getValue();
-        } 
-        
-        
-        if ( i==lastRow ) {
-          //close the last row only if the cell is not in the first column
-          if(j>1) { 
-            for ( var k = j; k>1; k-- ) {
-              outC += '</ul></li>';
-            }
-          } 
-          
-        } else {
-        
-          if ( (!cellUnderVal && !cellRightVal) || cellUnderLeftVal){
-            if(j>1) { 
-              for ( var k = j; k>1; k-- ) {
-                var cellUnderLeftVal = range.getCell(i+1,k-1).getValue();
-                if(cellUnderLeftVal) {
-                  outC += '</ul></li>';
-                } 
-              }
-            } 
-          }
-          
-        }
-      }
+  // create json
+  var jsonArray = [];
+  for(var i=0; i<rowValues.length; i++) {
+    var line = rowValues[i];
+    var json = new Object();
+    for(var j=0; j<titleColumns.length; j++) {
+      json[titleColumns[j]] = line[j];
     }
+    jsonArray.push(json);
   }
-  
-  outC += '</optgroup>';
-  
-  return [outC, outS];
+  return jsonArray;
 }
 
-
-
 // ******************************************************************************************************
-// Utility function to return the content of a sheet as menu
+// Wrapper for the convertSheet2JsonText - pass the sheetName to get the JSOn array out
 // ******************************************************************************************************
-
-function createSubcategoryItems(sh, index) {
-  var outC = '';
-  var shName = sh.getName();
-  var outS = '<optgroup label="' + shName + '">';
-  var outT = '<div class="subcategory sub-' + shName + '"><select>'; 
-  var parentIndex = 0;
-  var lastRow = sh.getLastRow(); 
-  var gIndex = '';
-  
-  var range = sh.getRange(1, 1, lastRow+1, 2)
-  
-  //loop over all orws, but only on 2 columns 
-  for ( var i=1; i<=lastRow; i++ ){
-    
-    parentIndex = 0;
-    
-    for ( var j=1; j<=2; j++ ){
-      
-      gIndex = index + '-' + i + '-' + j;
-      var thisCellVal = range.getCell(i,j).getValue();
-      
-      //skip if empty
-      if (thisCellVal) {
-        
-        //add value to chosen
-        outS += '<option class="item-' + gIndex + ' col-class-' + j + ' " value="' + thisCellVal + '">' + thisCellVal + '</option>';
-        
-        if (j==1) { 
-          parentIndex = shName + '-' + i;
-          var cellRightVal = range.getCell(i,j+1).getValue();
-          if (cellRightVal) {
-            outC += '<li id="item-' + gIndex + '" class="has-children subcat parent-item"><a class="selectable">' + thisCellVal + '</a><a class="refine" data-toggle="collapse" data-target="#list-' + parentIndex + '">Refine</a><ul id="list-' + parentIndex + '">';
-          } else {
-            outC += '<li id="item-' + gIndex + '" class="no-children subcat child-item"><a class="selectable">' + thisCellVal + '</a></li>';
-          }
-        } else {       
-          outC += '<li id="item-' + gIndex + '" class="no-children subcat child-item"><a class="selectable">' + thisCellVal + '</a></li>';
-        }  
-        
-        //check if it is time to close a menu
-        var cellUnderVal = range.getCell(i+1,j).getValue();
-        var cellUnderLeftVal = '';
-        if(j>1) { 
-          var cellUnderLeftVal = range.getCell(i+1,j-1).getValue();
-        } 
-        
-        
-        if ( i==lastRow ) {
-          //close the last row only if the cell is not in the first column
-          if(j>1) { 
-            for ( var k = j; k>1; k-- ) {
-              outC += '</ul></li>';
-            }
-          } 
-          
-        } else {
-        
-          if ( (!cellUnderVal) || cellUnderLeftVal){
-            if(j>1) { 
-              for ( var k = j; k>1; k-- ) {
-                var cellUnderLeftVal = range.getCell(i+1,k-1).getValue();
-                if(cellUnderLeftVal) {
-                  outC += '</ul></li>';
-                } 
-              }
-            } 
-          }
-          
-        }
-        
-      }
-    }
-  }
-  
-
-  
-  outC += '</optgroup>';
-  
-  return [outC, outS];
-}
-
-
-
-
-
-
-
-
-
-
-
-
-// ******************************************************************************************************
-// Function to print out the tasks
-// ******************************************************************************************************
-function printTasks() {
-  
-  var codeTask = ''; 
-  var sheetName = '';
-  var headingName = '';
-  var cellVal = '' ;
-  var j = 0; 
-  var nextID = '';
-  var solVal = '';
-  var taskList = [];
-  var colIndex = 0;
-  var maxTasks = 0;
- 
+function sheet2Json(sheetName) {
   var ss = SpreadsheetApp.openById(sheetID);
-  var sheet = ss.getSheetByName("Tasks");
- 
-  
-  var lastCol = sheet.getLastColumn();  
- 
-  var doWeLimit = sheet.getRange(1, 1, 1,1).getValue();
- 
-  
-  //create array of all task column identifiers, including only tasks that have been marked as "Included"
-  for (j=2; j<lastCol; j++ ) { 
-    if ( sheet.getRange(3, j, 1,1).getValue() == 'Included' ) {
-      taskList.push(j); 
-      maxTasks++;
-    }  
-  } 
-
-  //reset the number of max tasks to display if needed (and if it is lower than the number of included tasks)
-  if( doWeLimit != 'Display all') { 
-    var mTasks = Number(/\d+/.exec(doWeLimit));
-    if ( mTasks < maxTasks ) { maxTasks = mTasks; }
-  }
-  
-  //create list of elements to display
-  taskList = shuffle(taskList);           //shuffle the list of tasks
-  taskList = taskList.slice(0, maxTasks); //truncate the list of tasks to the desired number
-  taskList.push('thankyou');              //the l;ast item to display is the "thank you" box
-  
-  
-  
-  //print welcome message
-  codeTask += '<div id="welcome" class="boxMessage">'; 
-    codeTask += '<p>' + ss.getSheetByName(settingsName).getRange(13, 7, 1,1).getValue().replace(/\n/gm,"</p><p>") + '</p>';   
-    codeTask += '<button class="control green" onclick="var el= this.parentNode; hide(el); show(\'task' + taskList[0] + '\');">Hide this message and show the first task</button>';
-  codeTask += '</div>';
-    
-  
- 
-  //print list of tasks
-  codeTask += '<div id="task-wrapper">';
-  
- 
-  for (j=0; j<maxTasks; j++ ){
-   
-    colIndex = taskList[j];
-     
-    cellVal = sheet.getRange(1, colIndex, 1,1).getValue();
-   
-   
-   
-    //print a task only if there is a task description (or else the feedback column will create trouble)
-    if (cellVal.length > 1) {
-      solVal = sheet.getRange(2, colIndex, 1,1).getValue();
-     
-      codeTask += '<div class="task hidden" id="task' + colIndex + '">';
-   
-        //print the task description and start button
-        codeTask += '<div id="taskText' + colIndex + '" class="boxMessage">';  
-          codeTask += '<p id="p' + colIndex + '">' + cellVal + '</p>'; //task description
-          codeTask += '<button id="start' + colIndex + '" class="control red" onclick="startTask(' + colIndex + ',\'' + solVal + '\') ">Start</button>'; 
-        codeTask += '</div>';
-     
-     
-        //print task reminder and the "I give up" button (start as hidden)
-        codeTask += '<div id="taskBtn' + colIndex + '" class="hidden taskbtn-wrapper">';  
-          codeTask += '<p>Task: '+ cellVal + '</p>'; // add reminder text above the "I give up" button
-          codeTask += '<button id="out' + colIndex + '" class="control red giveup" onclick="stopTask(); setSolution(\'I give up\'); ">I give up!</button>';
-        codeTask += '</div>';
-     
-     
-        //print the input fields to store the results
-        codeTask += '<input class="hidden" type="text" id="storeStart' + colIndex + '" name="storeStart' + colIndex + '" value="" />';
-        codeTask += '<input class="hidden" type="text" id="storeStop' + colIndex + '" name="storeStop' + colIndex + '" value="" />';
-        codeTask += '<input class="hidden" type="text" id="storeClicks' + colIndex + '" name="storeClicks' + colIndex + '" value="" />';
-        codeTask += '<input class="hidden" type="textarea" id="storeMouse' + colIndex + '" name="storeMouse' + colIndex + '" />';
-   
-      codeTask += '</div>';  
-    }
-   
-  }
-
-  codeTask += '</div>';
-
-  
-  
-  
-  //print feedback textarea, thank you message, and "Submit" button
-  codeTask += '<div id="thankyou" class="hidden boxMessage thankyou">';
-    codeTask += '<textarea id="feedback" name="feedback" value="" placeholder="Any feedback? Type it here!"></textarea>';
-    codeTask += '<p class="message">Click on "Submit", and you are done!</p>';  
-    codeTask += '<button class="control red" onclick="var outV = outArray(' + lastCol + '); google.script.run.printResult(outV, \'Tasks\'); hide(\'thankyou\'); show(\'restart\')">Submit</button>';
-  codeTask += '</div>';
-  
-  
-  //print restart code
-  codeTask += '<div id="restart"  class="hidden" >';
-  codeTask += '<a  class="control red" href="' + scriptURL + '?action=measure" style="display:inline-block;">Do it again?</a>';
-  codeTask += '<p class="message">The list of tasks is randomly generated every time</p>';
-  codeTask += '</div>';
-  
-  
-  return codeTask; 
-}
-
-
-
-
-
-// ******************************************************************************************************
-// Function to print a new row of items (pas as the array "outArr") in the spreadsheet (identified by name, passed as "targetSheet")
-// ******************************************************************************************************
-function printResult(outArr, targetSheet){
-  var ss = SpreadsheetApp.openById(sheetID);
-  var sheet = ss.getSheetByName(targetSheet);
- 
-  //lock to avoid concurrent writes 
-  var lock = LockService.getPublicLock();
-  lock.waitLock(30000);  // wait 30 seconds before conceding defeat.
-  
-  // get column where to print the data
-  var rowNum = sheet.getLastRow()+1; 
-    
-  //print the timestamp
-  var timestap = new Date();
-  sheet.getRange(rowNum, 1, 1, 1).setValue(timestap);
-  
-  //print all collected values.
-  //it is more efficient to print a single array that to set each value individually
-  sheet.getRange(rowNum,2,1,outArr.length).setValues([outArr]);
-  
-  
-  lock.releaseLock();
-  
-}
-
-
-
-// ******************************************************************************************************
-// Function to print all the values in the spreadsheet
-// ******************************************************************************************************
-function submitTask(outArr){
-  var ss = SpreadsheetApp.openById(sheetID);
-  var sheet = ss.getSheetByName("Tasks");
-  
-  //lock to avoid concurrent writes 
-  var lock = LockService.getPublicLock();
-  
-  // get column where to print the data
-  var lastCol = sheet.getLastColumn(); 
-  sheet.insertColumnAfter(lastCol-1); //add a column before the last (where "feedback" is stored)
-  
-  //print the task description and solution, and set the status as "Submitted"
-  var oArr = [];
-  sheet.getRange(1,lastCol,1,1).setValue(outArr[0]);
-  sheet.getRange(2,lastCol,1,1).setValue(outArr[1]);
-  sheet.getRange(3,lastCol,1,1).setValue('Submitted');
-    
-  //add comment to the first cell
-  var noteText = 'Audience : ' + outArr[2];
-  if (outArr[3]) {noteText += ' Note : ' + outArr[3];}
-  sheet.getRange(1,lastCol,1,1).setNote(noteText);
-  
-  lock.releaseLock();
-}
-
-
-
-
-// ******************************************************************************************************
-// Function to print all the menu items as a collapsible list of options when creating a new task
-// ******************************************************************************************************
-function printOptions(){
-  var ss = SpreadsheetApp.openById(sheetID);
-  var sSettings = ss.getSheetByName(settingsName);
   var sheets = ss.getSheets();
-  var sheetName ='';
-  var cellVal = '';
-  var outC = '<div id="taskSelect" class="select"><ul>';
-  
-  //loop over the sheets, and the HTML to be used by the JSTree plugin
-  for(var h=0; h<ss.getSheets().length; h++){   
-    var sheet = ss.getSheets()[h]; // look at every sheet in spreadsheet   
-    
-    //check that the sheet is part of the menu structure
-    cellVal = sSettings.getRange(h+2, 2, 1,1).getValue();
-    if (cellVal == "Primary" || h == "Secondary") {
-      var lastRow = sheet.getLastRow(); 
-      var lastCol = sheet.getLastColumn();
-      sheetName = sheet.getName();
-      
-      outC += '<li class="lvl1">' + sheetName + '<ul>';
-    
-      //loop over the columns in the sheet
-      for ( var j=1; j<lastCol+1; j++ ){
-        outC += '<li class="lvl2">' + sheet.getRange(1, j, 1,1).getValue() + '<ul>';
-        
-        //loop over the rows
-        for ( var i=2; i<lastRow+1; i++ ){
-	      cellVal = sheet.getRange(i, j, 1,1).getValue();
-          if (cellVal != '') {
-  	        outC += '<li class="lvl3">' + cellVal + '</li>';
-	      }
-	    }
-        
-        outC += '</ul></li>';
-      }
-    
-      outC += '</ul></li>';
-    }  
-  }
-  
-  outC += '</ul></div>';
-  
-  
-  
-  //initialise jsTree
-  outC += '<script> $(function() { $("#taskSelect").jstree( {';
-    outC += '"core" : { "multiple" : false, "themes" : { "dots" : false} },';
-    outC += '"plugins" : ["search","wholerow"]';
-  outC += '}); }); </script>';
-
-  
-  //add CSS
-  var primaryColor = sSettings.getRange(4, 7, 1,1).getValue();
-  
-  outC += '<style>';
-    outC += 'body .jstree-default .jstree-wholerow-clicked{ background: ' + primaryColor +'; }';
-  outC += '</style>';
-  
-  return outC;
+  var sh = ss.getSheetByName(sheetName);
+  return convertSheet2JsonText(sh);
 }
 
-
-
 // ******************************************************************************************************
-// Function to print all the audience groups as a collapsible list of options when creating a new task
+// Function to convert a string into a SEO-friendly URL
+// from https://stackoverflow.com/questions/14107522/producing-seo-friendly-url-in-javascript
 // ******************************************************************************************************
-function printAudience(){
-  var ss = SpreadsheetApp.openById(sheetID);
-  var sSettings = ss.getSheetByName(settingsName);
-  var cellVal = '';
-  
-  //print list (start with "everyone")
-  var outC = '<div id="audienceSelect" class="select"><ul>';
-  outC += '<li class="lvl1">Everyone<ul>';
-  
-  var lastRow = sSettings.getLastRow();
-  //loop over the rows
-  for ( var i=2; i<lastRow+1; i++ ){
-    cellVal = sSettings.getRange(i, 4, 1,1).getValue();
-    if (cellVal != '') {
-      outC += '<li class="lvl2">' + cellVal + '</li>';
-    }
-  }
-  outC += '</ul></li></ul></div>';
-  
-  
-  
-  //initialise jsTree
-  outC += '<script> $(function() { $("#audienceSelect").jstree( {';
-    outC += '"core" : { "multiple" : true, "themes" : { "dots" : false} },';
-    outC += '"plugins" : ["wholerow","checkbox"]';
-  outC += '}); }); </script>';
-
-  
-  return outC;
-}
-
-
-
-// ******************************************************************************************************
-// Function to randomise an array from https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
-// use it like: arr = shuffle(arr);
-// ******************************************************************************************************
-function shuffle(array) {
-  var currentIndex = array.length, temporaryValue, randomIndex;
-
-  // While there remain elements to shuffle...
-  while (0 !== currentIndex) {
-
-    // Pick a remaining element...
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex -= 1;
-
-    // And swap it with the current element.
-    temporaryValue = array[currentIndex];
-    array[currentIndex] = array[randomIndex];
-    array[randomIndex] = temporaryValue;
-  }
-
-  return array;
+function toSeoUrl(textToConvert) {
+    return textToConvert.toString()               // Convert to string
+        .normalize('NFD')               // Change diacritics
+        .replace(/[\u0300-\u036f]/g,'') // Remove illegal characters
+        .replace(/\s+/g,'-')            // Change whitespace to dashes
+        .toLowerCase()                  // Change to lowercase
+        .replace(/&/g,'-and-')          // Replace ampersand
+        .replace(/[^a-z0-9\-]/g,'')     // Remove anything that is not a letter, number or dash
+        .replace(/-+/g,'-')             // Remove duplicate dashes
+        .replace(/^-*/,'')              // Remove starting dashes
+        .replace(/-*$/,'');             // Remove trailing dashes
 }
